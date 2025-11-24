@@ -26,9 +26,9 @@ This project is built with:
 - Tailwind CSS
 
 ### TO ACCESS DASHBOARDS #######
-login as admin;;;;;
+Log in as admin:
 email: kamugishaosbert7@gmail.com
-passwod::::
+password:
 12345678
 :: LOGIN AS MALE WARDEN:
 email: onesmus@gmail.com
