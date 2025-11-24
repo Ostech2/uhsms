@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* University Hostel Stock Management System Design System */
+
+@layer base {
+  :root {
+    /* Base Colors */
+    --background: 240 10% 98%;
+    --foreground: 224 15% 15%;
+
+    /* Card & Surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 224 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 15% 15%;
+
+    /* Primary Brand Colors - Professional Blue */
+    --primary: 213 94% 68%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 213 94% 58%;
+
+    /* Secondary - Warm Gray */
+    --secondary: 220 13% 95%;
+    --secondary-foreground: 224 15% 25%;
+
+    /* Muted */
+    --muted: 220 13% 95%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent - Success Green */
+    --accent: 142 86% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Admin Theme - Deep Purple */
+    --admin-primary: 262 100% 65%;
+    --admin-secondary: 262 45% 95%;
+    --admin-accent: 262 100% 55%;
+
+    /* Male Warden Theme - Blue Tones */
+    --male-primary: 213 94% 68%;
+    --male-secondary: 213 45% 95%;
+    --male-accent: 213 94% 58%;
+
+    /* Female Warden Theme - Warm Purple/Pink */
+    --female-primary: 316 73% 69%;
+    --female-secondary: 316 45% 95%;
+    --female-accent: 316 73% 59%;
+
+    /* Status Colors */
+    --success: 142 86% 58%;
+    --warning: 45 93% 63%;
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(262 100% 65%));
+    --gradient-admin: linear-gradient(135deg, hsl(262 100% 65%), hsl(262 100% 75%));
+    --gradient-male: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 94% 78%));
+    --gradient-female: linear-gradient(135deg, hsl(316 73% 69%), hsl(316 73% 79%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 13% 98%));
+
+    /* Borders & Inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 213 94% 68%;
+
+    --radius: 0.75rem;
+
+    /* Animations & Effects */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-elegant: 0 10px 30px -10px hsl(213 94% 68% / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(220 13% 91% / 0.5);
+
+    /* Sidebar Variables */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 224 15% 8%;
+    --foreground: 220 13% 95%;
+
+    --card: 224 15% 10%;
+    --card-foreground: 220 13% 95%;
+
+    --popover: 224 15% 10%;
+    --popover-foreground: 220 13% 95%;
+
+    --primary: 213 94% 68%;
+    --primary-foreground: 224 15% 8%;
+    --primary-hover: 213 94% 58%;
+
+    --secondary: 224 15% 15%;
+    --secondary-foreground: 220 13% 85%;
+
+    --muted: 224 15% 15%;
+    --muted-foreground: 220 9% 60%;
+
+    --accent: 142 86% 58%;
+    --accent-foreground: 224 15% 8%;
+
+    --admin-primary: 262 100% 65%;
+    --admin-secondary: 262 20% 15%;
+    --admin-accent: 262 100% 55%;
+
+    --male-primary: 213 94% 68%;
+    --male-secondary: 213 20% 15%;
+    --male-accent: 213 94% 58%;
+
+    --female-primary: 316 73% 69%;
+    --female-secondary: 316 20% 15%;
+    --female-accent: 316 73% 59%;
+
+    --success: 142 86% 58%;
+    --warning: 45 93% 63%;
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 220 13% 95%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(262 100% 65%));
+    --gradient-admin: linear-gradient(135deg, hsl(262 100% 65%), hsl(262 100% 75%));
+    --gradient-male: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 94% 78%));
+    --gradient-female: linear-gradient(135deg, hsl(316 73% 69%), hsl(316 73% 79%));
+    --gradient-card: linear-gradient(145deg, hsl(224 15% 12%), hsl(224 15% 10%));
+
+    --border: 224 15% 20%;
+    --input: 224 15% 20%;
+    --ring: 213 94% 68%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

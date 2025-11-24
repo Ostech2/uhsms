@@ -1,0 +1,455 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { FileText, Download, Printer } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface ReportData {
+  hostels: any[];
+  rooms: any[];
+  inventory: any[];
+  categories: any[];
+  occupants: any[];
+}
+
+interface ReportsGeneratorProps {
+  wardenType: 'male' | 'female' | 'admin';
+}
+
+export function ReportsGenerator({ wardenType }: ReportsGeneratorProps) {
+  const [data, setData] = useState<ReportData>({ hostels: [], rooms: [], inventory: [], categories: [], occupants: [] });
+  const [reportType, setReportType] = useState<string>('');
+  const [selectedHostel, setSelectedHostel] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Load hostels first
+      let hostelQuery = supabase.from('hostels').select('*');
+      if (wardenType !== 'admin') {
+        hostelQuery = hostelQuery.eq('type', wardenType).eq('warden_id', user.id);
+      }
+      
+      const { data: hostels } = await hostelQuery;
+      const hostelIds = hostels?.map(h => h.id) || [];
+      
+      // Load other data filtered by hostel IDs for wardens
+      let roomsQuery = supabase.from('rooms').select('*');
+      let inventoryQuery = supabase.from('inventory_items').select('*');
+      let occupantsQuery = supabase.from('room_occupants').select('*');
+      
+      if (wardenType !== 'admin' && hostelIds.length > 0) {
+        roomsQuery = roomsQuery.in('hostel_id', hostelIds);
+        inventoryQuery = inventoryQuery.in('hostel_id', hostelIds);
+        // Filter occupants by rooms in these hostels
+        const roomIds = (await roomsQuery)?.data?.map(r => r.id) || [];
+        if (roomIds.length > 0) {
+          occupantsQuery = occupantsQuery.in('room_id', roomIds);
+        }
+      }
+
+      const [
+        { data: rooms },
+        { data: inventory },
+        { data: categories },
+        { data: occupants }
+      ] = await Promise.all([
+        roomsQuery,
+        inventoryQuery,
+        supabase.from('inventory_categories').select('*'),
+        occupantsQuery
+      ]);
+
+      console.log('Loaded report data:', {
+        hostels: hostels?.length,
+        rooms: rooms?.length,
+        occupants: occupants?.length
+      });
+
+      setData({
+        hostels: hostels || [],
+        rooms: rooms || [],
+        inventory: inventory || [],
+        categories: categories || [],
+        occupants: occupants || []
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load data for reports",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateReport = () => {
+    if (!reportType) {
+      toast({
+        title: "Error",
+        description: "Please select a report type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Filter data based on selections
+    let filteredData = { ...data };
+    
+    if (selectedHostel !== 'all') {
+      filteredData.rooms = data.rooms.filter(room => room.hostel_id === selectedHostel);
+      filteredData.inventory = data.inventory.filter(item => item.hostel_id === selectedHostel);
+      const roomIds = filteredData.rooms.map(r => r.id);
+      filteredData.occupants = data.occupants.filter(occ => roomIds.includes(occ.room_id));
+    }
+
+    const reportContent = generateReportContent(reportType, filteredData);
+    printReport(reportContent);
+  };
+
+  const generateReportContent = (type: string, reportData: ReportData) => {
+    const currentDate = new Date().toLocaleDateString();
+    const university = "Uganda Christian University - Bishop Barham University College Kabale";
+    
+    let content = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px;">
+          <h1 style="color: #333; margin: 0;">${university}</h1>
+          <h2 style="color: #666; margin: 5px 0;">Hostel Stock Management System</h2>
+          <h3 style="color: #888; margin: 5px 0;">${getReportTitle(type)}</h3>
+          <p style="color: #999; margin: 5px 0;">Report Generated: ${currentDate}</p>
+          <p style="color: #999; margin: 5px 0;">Generated By: ${wardenType === 'admin' ? 'Administrator' : `${wardenType.charAt(0).toUpperCase() + wardenType.slice(1)} Warden`}</p>
+        </div>
+    `;
+
+    switch (type) {
+      case 'hostel-summary':
+        content += generateHostelSummary(reportData);
+        break;
+      case 'room-occupancy':
+        content += generateRoomOccupancy(reportData);
+        break;
+      case 'inventory-status':
+        content += generateInventoryStatus(reportData);
+        break;
+      case 'maintenance-report':
+        content += generateMaintenanceReport(reportData);
+        break;
+      default:
+        content += '<p>Invalid report type selected.</p>';
+    }
+
+    content += `
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; text-align: center; color: #666; font-size: 12px;">
+          <p>This report is computer generated and does not require a signature.</p>
+          <p>For queries, contact the Hostel Management Office.</p>
+        </div>
+      </div>
+    `;
+
+    return content;
+  };
+
+  const getReportTitle = (type: string) => {
+    switch (type) {
+      case 'hostel-summary': return 'Hostel Summary Report';
+      case 'room-occupancy': return 'Room Occupancy Report';
+      case 'inventory-status': return 'Inventory Status Report';
+      case 'maintenance-report': return 'Maintenance Report';
+      default: return 'Report';
+    }
+  };
+
+  const generateHostelSummary = (reportData: ReportData) => {
+    return `
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Hostel Overview</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Hostel Name</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Type</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Total Rooms</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Occupied Rooms</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Occupancy Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.hostels.map(hostel => {
+              const hostelRooms = reportData.rooms.filter(room => room.hostel_id === hostel.id);
+              const occupiedRooms = hostelRooms.filter(room => room.status === 'occupied').length;
+              const occupancyRate = hostelRooms.length > 0 ? ((occupiedRooms / hostelRooms.length) * 100).toFixed(1) : '0';
+              
+              return `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${hostel.name}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-transform: capitalize;">${hostel.type}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${hostelRooms.length}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${occupiedRooms}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${occupancyRate}%</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  const generateRoomOccupancy = (reportData: ReportData) => {
+    return `
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Room Occupancy Details</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Hostel</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Room Number</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Capacity</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Current Occupants</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.rooms.map(room => {
+              const hostel = reportData.hostels.find(h => h.id === room.hostel_id);
+              const roomOccupants = reportData.occupants.filter(occ => occ.room_id === room.id && !occ.check_out_date);
+              
+              return `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${hostel?.name || 'Unknown'}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${room.room_number}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${room.capacity}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${roomOccupants.length} / ${room.capacity}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-transform: capitalize;">${room.status}</td>
+                </tr>
+                ${roomOccupants.length > 0 ? `
+                  <tr>
+                    <td colspan="5" style="border: 1px solid #ddd; padding: 10px; background-color: #fafafa;">
+                      <strong>Occupants:</strong><br/>
+                      ${roomOccupants.map(occ => `
+                        • ${occ.student_name} (Reg: ${occ.registration_number}, Access: ${occ.access_number}) - Year ${occ.year_of_study}, Semester ${occ.semester}
+                      `).join('<br/>')}
+                    </td>
+                  </tr>
+                ` : ''}
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  const generateInventoryStatus = (reportData: ReportData) => {
+    return `
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Inventory Status</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Item Name</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Category</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Hostel</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Quantity</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Condition</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.inventory.map(item => {
+              const category = reportData.categories.find(c => c.id === item.category_id);
+              const hostel = reportData.hostels.find(h => h.id === item.hostel_id);
+              return `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${item.name}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${category?.name || 'Unknown'}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${hostel?.name || 'Unassigned'}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${item.quantity}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-transform: capitalize;">${item.condition}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-transform: capitalize;">${item.status}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  const generateMaintenanceReport = (reportData: ReportData) => {
+    const maintenanceItems = reportData.inventory.filter(item => 
+      item.status === 'maintenance' || item.condition === 'damaged' || item.condition === 'poor'
+    );
+
+    return `
+      <div style="margin-bottom: 30px;">
+        <h4 style="color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Items Requiring Maintenance</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Item Name</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Hostel</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Condition</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Status</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${maintenanceItems.map(item => {
+              const hostel = reportData.hostels.find(h => h.id === item.hostel_id);
+              return `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${item.name}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${hostel?.name || 'Unassigned'}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-transform: capitalize;">${item.condition}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-transform: capitalize;">${item.status}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${item.notes || 'No notes'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+        ${maintenanceItems.length === 0 ? '<p style="text-align: center; color: #666; margin-top: 20px;">No items requiring maintenance at this time.</p>' : ''}
+      </div>
+    `;
+  };
+
+  const printReport = (content: string) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Hostel Report</title>
+            <style>
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${content}
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+              <button onclick="window.print()" style="padding: 10px 20px; background: #333; color: white; border: none; cursor: pointer;">Print Report</button>
+              <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; cursor: pointer; margin-left: 10px;">Close</button>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center p-8">Loading...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Reports Generator</h2>
+        <div className="text-sm text-muted-foreground">
+          Generate and print hostel management reports
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Report Configuration
+          </CardTitle>
+          <CardDescription>Configure and generate reports for hostel management</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="report-type">Report Type</Label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select report type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hostel-summary">Hostel Summary Report</SelectItem>
+                  <SelectItem value="room-occupancy">Room Occupancy Report</SelectItem>
+                  <SelectItem value="inventory-status">Inventory Status Report</SelectItem>
+                  <SelectItem value="maintenance-report">Maintenance Report</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="hostel-filter">Filter by Hostel</Label>
+              <Select value={selectedHostel} onValueChange={setSelectedHostel}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Hostels</SelectItem>
+                  {data.hostels.map((hostel) => (
+                    <SelectItem key={hostel.id} value={hostel.id}>
+                      {hostel.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button onClick={generateReport} className="flex items-center gap-2">
+              <Printer className="h-4 w-4" />
+              Generate & Print Report
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Stats</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{data.hostels.length}</div>
+              <div className="text-sm text-blue-800">Total Hostels</div>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{data.rooms.length}</div>
+              <div className="text-sm text-green-800">Total Rooms</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">{data.inventory.length}</div>
+              <div className="text-sm text-purple-800">Inventory Items</div>
+            </div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-600">
+                {data.inventory.filter(item => item.status === 'maintenance' || item.condition === 'damaged').length}
+              </div>
+              <div className="text-sm text-yellow-800">Need Maintenance</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
