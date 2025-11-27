@@ -1,17 +1,10 @@
 # Welcome to the university hostel management system
 
-## Project info
+#PROTOTYPE LINK //
 
 **URL**: https://ostech2.github.io/uhsms/
 
 
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
 
 
 
