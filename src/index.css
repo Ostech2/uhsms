@@ -1,6 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* stylelint-disable at-rule-no-unknown */
+/* Tailwind directives - processed by PostCSS/Tailwind */
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 /* University Hostel Stock Management System Design System */
 
@@ -56,10 +58,10 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(262 100% 65%));
-    --gradient-admin: linear-gradient(135deg, hsl(262 100% 65%), hsl(262 100% 75%));
-    --gradient-male: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 94% 78%));
-    --gradient-female: linear-gradient(135deg, hsl(316 73% 69%), hsl(316 73% 79%));
+    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(262, 88%, 20%));
+    --gradient-admin: linear-gradient(135deg, hsl(262, 98%, 34%), hsl(262, 87%, 37%));
+    --gradient-male: linear-gradient(135deg, hsl(213, 83%, 30%), hsl(213, 90%, 34%));
+    --gradient-female: linear-gradient(135deg, hsl(251, 79%, 32%), hsl(251, 89%, 26%));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 13% 98%));
 
     /* Borders & Inputs */
@@ -72,7 +74,7 @@
     /* Animations & Effects */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --shadow-elegant: 0 10px 30px -10px hsl(213 94% 68% / 0.3);
-    --shadow-card: 0 4px 20px -4px hsl(220 13% 91% / 0.5);
+    --shadow-card: 0 4px 20px -4px hsla(220, 89%, 15%, 0.5);
 
     /* Sidebar Variables */
     --sidebar-background: 0 0% 98%;
@@ -126,9 +128,9 @@
     --destructive-foreground: 220 13% 95%;
 
     --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(262 100% 65%));
-    --gradient-admin: linear-gradient(135deg, hsl(262 100% 65%), hsl(262 100% 75%));
-    --gradient-male: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 94% 78%));
-    --gradient-female: linear-gradient(135deg, hsl(316 73% 69%), hsl(316 73% 79%));
+    --gradient-admin: linear-gradient(135deg, hsl(262, 89%, 19%), hsl(262, 88%, 26%));
+    --gradient-male: linear-gradient(135deg, hsl(213, 89%, 14%), hsl(213, 97%, 47%));
+    --gradient-female: linear-gradient(135deg, hsl(253, 87%, 30%), hsl(234, 88%, 26%));
     --gradient-card: linear-gradient(145deg, hsl(224 15% 12%), hsl(224 15% 10%));
 
     --border: 224 15% 20%;
@@ -148,10 +150,11 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }

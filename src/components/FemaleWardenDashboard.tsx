@@ -178,7 +178,7 @@ export function FemaleWardenDashboard({ onLogout }: FemaleWardenDashboardProps) 
             <Button variant="outline" onClick={() => setShowChangePassword(true)} className="border-white/40 bg-white/10 text-white hover:bg-white/20 font-semibold">
               Change Password
             </Button>
-            <Button variant="outline" onClick={onLogout} className="border-white/40 bg-white/10 text-white hover:bg-white/20 font-semibold">
+            <Button variant="outline" onClick={onLogout} className="border-white/40 bg-black/10 text-black hover:bg-black/20 font-semibold">
               Logout
             </Button>
           </div>
